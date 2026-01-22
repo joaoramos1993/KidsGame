@@ -9,7 +9,7 @@ class MemoryGame {
         this.cards = [];
         this.flippedCards = [];
         this.matchedPairs = 0;
-        this.totalPairs = 18; // 18 pairs = 36 cards
+        this.totalPairs = 8; // 8 pairs = 16 cards
         this.startTime = null;
         this.bestTime = this.loadBestTime();
         
@@ -75,20 +75,20 @@ class MemoryGame {
         const cardEmojis = [...selectedEmojis, ...selectedEmojis];
         cardEmojis.sort(() => Math.random() - 0.5); // Shuffle
         
-        // Calculate grid layout for 36 cards (6x6)
+        // Calculate grid layout for 16 cards (4x4)
         const gameWidth = this.gameArea.clientWidth;
         const gameHeight = this.gameArea.clientHeight;
         
         // Calculate card size to fit 70% of screen area
         const targetWidth = gameWidth * 0.7;
         const targetHeight = gameHeight * 0.7;
-        const spacing = 10;
-        const cols = 6;
-        const rows = 6;
+        const spacing = 15;
+        const cols = 4;
+        const rows = 4;
         
         const maxCardWidth = (targetWidth - spacing * (cols - 1)) / cols;
         const maxCardHeight = (targetHeight - spacing * (rows - 1)) / rows;
-        const cardSize = Math.min(maxCardWidth, maxCardHeight, 80);
+        const cardSize = Math.min(maxCardWidth, maxCardHeight, 100);
         
         const totalWidth = cols * cardSize + (cols - 1) * spacing;
         const totalHeight = rows * cardSize + (rows - 1) * spacing;
