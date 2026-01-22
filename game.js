@@ -1,50 +1,45 @@
 // Kids Game - Simple and Fun for Toddlers
-class KidsGame {
-    constructor() {
-        this.gameArea = document.getElementById('gameArea');
-        this.celebration = document.getElementById('celebration');
-        this.startBtn = document.getElementById('startBtn');
-        this.soundToggle = document.getElementById('soundToggle');
-        this.modeToggle = document.getElementById('modeToggle');
+class FindEmojiGame {
+    constructor(gameManager, isChallengeMode = true) {
+        this.gameManager = gameManager;
+        this.gameArea = gameManager.gameArea;
+        this.audioContext = gameManager.audioContext;
+        
         this.challengePrompt = document.getElementById('challengePrompt');
         this.targetEmojiDisplay = document.getElementById('targetEmoji');
         this.categorySelector = document.getElementById('categorySelector');
         this.categoryAnimalsBtn = document.getElementById('categoryAnimals');
         this.categoryOthersBtn = document.getElementById('categoryOthers');
+        this.modeToggle = document.getElementById('modeToggle');
         
         this.isPlaying = false;
-        this.soundEnabled = true;
-        this.challengeMode = true;
+        this.challengeMode = isChallengeMode;
         this.selectedCategory = 'animals'; // 'animals' or 'others'
         this.shapes = [];
         this.spawnInterval = null;
         this.targetEmojis = []; // Array of 8 target emojis
-        this.score = 0;
         this.foundEmojis = []; // Track found emojis in challenge mode
         
         // Categorized emojis with their sounds
         this.emojiCategories = {
             animals: {
-                emojis: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🦆', '🦉', '🐝', '🦋', '🐞', '🐠', '🐡', '🐙'],
+                emojis: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮'],
                 sounds: {
                     '🐶': 'bark', '🐱': 'meow', '🐭': 'squeak', '🐹': 'squeak',
                     '🐰': 'hop', '🦊': 'bark', '🐻': 'growl', '🐼': 'growl',
-                    '🐨': 'grunt', '🐯': 'roar', '🦁': 'roar', '🐮': 'moo',
-                    '🐷': 'oink', '🐸': 'ribbit', '🐵': 'monkey', '🐔': 'cluck',
-                    '🦆': 'quack', '🦉': 'hoot', '🐝': 'buzz', '🦋': 'flutter',
-                    '🐞': 'buzz', '🐠': 'bubble', '🐡': 'bubble', '🐙': 'bubble'
+                    '🐨': 'grunt', '🐯': 'roar', '🦁': 'roar', '🐮': 'moo'
                 }
             },
             magic: {
-                emojis: ['⭐', '🌟', '✨', '💫', '🌈', '☀️', '🌙', '⚡'],
+                emojis: ['⭐', '🌟', '✨', '💫'],
                 sound: 'sparkle'
             },
             hearts: {
-                emojis: ['❤️', '💛', '💚', '💙', '💜', '🧡', '🎈', '🎁'],
+                emojis: ['❤️', '💛', '💚', '💙'],
                 sound: 'love'
             },
             fruits: {
-                emojis: ['🍎', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🍒'],
+                emojis: ['🍎', '🍊', '🍋', '🍌'],
                 sound: 'pop'
             }
         };
@@ -64,46 +59,18 @@ class KidsGame {
     }
     
     init() {
-        console.log('Initializing game...');
-        this.startBtn.addEventListener('click', () => {
-            console.log('Start button clicked');
-            this.toggleGame();
-        });
-        this.soundToggle.addEventListener('click', () => this.toggleSound());
-        this.modeToggle.addEventListener('click', () => this.toggleMode());
+        console.log('Initializing FindEmojiGame...');
         this.categoryAnimalsBtn.addEventListener('click', () => this.selectCategory('animals'));
         this.categoryOthersBtn.addEventListener('click', () => this.selectCategory('others'));
         
-        // Create audio context for sounds (using Web Audio API)
-        // Audio context may be suspended, will resume on first user interaction
-        try {
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        } catch (error) {
-            console.error('Web Audio API not supported:', error);
-            this.soundEnabled = false;
-        }
-        
-        // Show category selector initially since challenge mode is default
-        this.categorySelector.style.display = 'flex';
-        console.log('Game initialized successfully');
-    }
-    
-    toggleMode() {
-        this.challengeMode = !this.challengeMode;
-        this.modeToggle.textContent = this.challengeMode ? 'Modo: Desafio 🎯' : 'Modo: Simples 🎈';
-        
+        // Show/hide UI based on mode
         if (this.challengeMode) {
-            this.modeToggle.style.background = 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
-            this.categorySelector.style.display = 'flex'; // Show category selector
+            this.categorySelector.style.display = 'flex';
         } else {
-            this.modeToggle.style.background = 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)';
-            this.categorySelector.style.display = 'none'; // Hide category selector
+            this.categorySelector.style.display = 'none';
         }
         
-        // Reset game if playing
-        if (this.isPlaying) {
-            this.stopGame();
-        }
+        console.log('FindEmojiGame initialized successfully');
     }
     
     selectCategory(category) {
@@ -120,32 +87,13 @@ class KidsGame {
         
         // If game is playing in challenge mode, restart completely with new category
         if (this.isPlaying && this.challengeMode) {
-            this.stopGame();
-            this.startGame();
+            this.stop();
+            this.start();
         }
     }
     
-    toggleGame() {
-        if (this.isPlaying) {
-            this.stopGame();
-        } else {
-            // Set initial button style based on mode
-            if (this.challengeMode) {
-                this.modeToggle.style.background = 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
-            }
-            this.startGame();
-        }
-    }
-    
-    startGame() {
-        // Resume audio context if suspended (required by browsers)
-        if (this.audioContext && this.audioContext.state === 'suspended') {
-            this.audioContext.resume();
-        }
-        
+    start() {
         this.isPlaying = true;
-        this.startBtn.textContent = 'Parar Jogo 🛑';
-        this.startBtn.style.background = 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
         
         // Clear any existing shapes
         this.clearShapes();
@@ -158,18 +106,16 @@ class KidsGame {
             // Spawn shapes continuously
             this.spawnShape();
             this.spawnInterval = setInterval(() => {
-                if (this.shapes.length < 8) {
+                if (this.shapes.length < 4) {
                     this.spawnShape();
                 }
             }, 1000);
         } else {
-            // Simple mode: show prompt with 1 target, reset score
-            this.score = 0;
-            this.updateScore();
+            // Simple mode: show prompt with 1 target
             this.challengePrompt.classList.add('active');
             this.pickSimpleTarget();
             
-            // Spawn 4 fixed options for simple mode
+            // Spawn 16 fixed options for simple mode
             this.spawnSimpleOptions();
         }
     }
@@ -179,7 +125,7 @@ class KidsGame {
     }
     
     pickNewTarget() {
-        // Pick 8 different random emojis as targets (Challenge mode)
+        // Pick 4 different random emojis as targets (Challenge mode)
         // Use only selected category
         let availableEmojis;
         if (this.selectedCategory === 'animals') {
@@ -205,13 +151,13 @@ class KidsGame {
     }
     
     pickSimpleTarget() {
-        // Pick 1 correct target and 3 wrong options (Simple mode)
+        // Pick 1 correct target and 15 wrong options (Simple mode)
         const correctEmoji = this.emojis[Math.floor(Math.random() * this.emojis.length)];
         this.targetEmojis = [correctEmoji]; // Only 1 correct answer
         
-        // Pick 3 different wrong options
+        // Pick 15 different wrong options
         this.simpleOptions = [correctEmoji];
-        while (this.simpleOptions.length < 4) {
+        while (this.simpleOptions.length < 16) {
             const randomEmoji = this.emojis[Math.floor(Math.random() * this.emojis.length)];
             if (!this.simpleOptions.includes(randomEmoji)) {
                 this.simpleOptions.push(randomEmoji);
@@ -302,26 +248,29 @@ class KidsGame {
         // Clear any existing shapes first
         this.clearShapes();
         
-        // Calculate positions for 4 options in a grid
+        // Calculate positions for 16 options in a 4x4 grid
         const gameWidth = this.gameArea.clientWidth;
         const gameHeight = this.gameArea.clientHeight;
-        const shapeSize = 120;
-        const spacing = 40;
+        const shapeSize = 80;
+        const spacing = 10;
         
-        // Calculate grid positions (2x2 grid centered)
-        const totalWidth = shapeSize * 2 + spacing;
-        const totalHeight = shapeSize * 2 + spacing;
+        // Calculate grid positions (4x4 grid centered)
+        const totalWidth = shapeSize * 4 + spacing * 3;
+        const totalHeight = shapeSize * 4 + spacing * 3;
         const startX = (gameWidth - totalWidth) / 2;
         const startY = (gameHeight - totalHeight) / 2;
         
-        const positions = [
-            { x: startX, y: startY }, // top-left
-            { x: startX + shapeSize + spacing, y: startY }, // top-right
-            { x: startX, y: startY + shapeSize + spacing }, // bottom-left
-            { x: startX + shapeSize + spacing, y: startY + shapeSize + spacing } // bottom-right
-        ];
+        const positions = [];
+        for (let row = 0; row < 4; row++) {
+            for (let col = 0; col < 4; col++) {
+                positions.push({
+                    x: startX + col * (shapeSize + spacing),
+                    y: startY + row * (shapeSize + spacing)
+                });
+            }
+        }
         
-        // Create 4 shapes with the selected emojis
+        // Create 16 shapes with the selected emojis
         this.simpleOptions.forEach((emoji, index) => {
             const shape = document.createElement('div');
             shape.className = 'shape emoji-shape';
@@ -330,7 +279,9 @@ class KidsGame {
             
             shape.style.left = positions[index].x + 'px';
             shape.style.top = positions[index].y + 'px';
-            shape.style.fontSize = '80px'; // Larger for easier clicking
+            shape.style.fontSize = '50px'; // Smaller for 16 options
+            shape.style.width = shapeSize + 'px';
+            shape.style.height = shapeSize + 'px';
             
             // Add click event
             shape.addEventListener('click', () => {
@@ -348,12 +299,12 @@ class KidsGame {
         if (this.targetEmojis.includes(emoji)) {
             // Correct!
             // Play specific sound for this emoji
-            if (this.soundEnabled) {
+            if (this.gameManager.soundEnabled) {
                 this.playSoundForEmoji(emoji);
             }
             
             // Show celebration
-            this.showCelebration();
+            this.gameManager.showCelebration();
             
             // Pick new target and respawn options
             setTimeout(() => {
@@ -362,7 +313,7 @@ class KidsGame {
             }, 500);
         } else {
             // Wrong! Play error sound and shake
-            if (this.soundEnabled) {
+            if (this.gameManager.soundEnabled) {
                 this.playErrorSound();
             }
             
@@ -379,8 +330,14 @@ class KidsGame {
             // Correct and not yet found!
             this.foundEmojis.push(emoji);
             
+            // Remove from targetEmojis so clicking the same emoji again is wrong
+            const targetIndex = this.targetEmojis.indexOf(emoji);
+            if (targetIndex > -1) {
+                this.targetEmojis.splice(targetIndex, 1);
+            }
+            
             // Play specific sound for this emoji
-            if (this.soundEnabled) {
+            if (this.gameManager.soundEnabled) {
                 this.playSoundForEmoji(emoji);
             }
             
@@ -397,14 +354,17 @@ class KidsGame {
             // Check if all 8 are found
             if (this.foundEmojis.length === 8) {
                 // Game complete!
-                this.showCelebration();
+                this.gameManager.showCelebration();
                 setTimeout(() => {
-                    this.stopGame();
+                    this.stop();
+                    // Reset start button
+                    this.gameManager.startBtn.textContent = 'Começar Jogo 🎮';
+                    this.gameManager.startBtn.style.background = 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)';
                 }, 2000);
             }
         } else if (!this.targetEmojis.includes(emoji)) {
             // Wrong emoji - play error sound
-            if (this.soundEnabled) {
+            if (this.gameManager.soundEnabled) {
                 this.playErrorSound();
             }
             shape.classList.add('shake');
@@ -420,14 +380,16 @@ class KidsGame {
         // No longer used - replaced by handleChallengeShapeClick
     }
     
-    stopGame() {
+    stop() {
         this.isPlaying = false;
-        this.startBtn.textContent = 'Começar Jogo 🎮';
-        this.startBtn.style.background = 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)';
-        
         clearInterval(this.spawnInterval);
         this.clearShapes();
         this.challengePrompt.classList.remove('active');
+    }
+    
+    cleanup() {
+        this.stop();
+        this.categorySelector.style.display = 'none';
     }
     
     spawnShape() {
@@ -448,6 +410,17 @@ class KidsGame {
                     ...this.emojiCategories.fruits.emojis
                 ];
             }
+            
+            // Check how many targets are left to find
+            const remainingTargets = this.targetEmojis.filter(target => !this.foundEmojis.includes(target));
+            
+            if (remainingTargets.length <= 3 && remainingTargets.length > 0) {
+                // When 3 or fewer targets remain, reduce pool to half + include remaining targets
+                const otherEmojis = availableEmojis.filter(e => !remainingTargets.includes(e));
+                const halfOthers = otherEmojis.slice(0, Math.floor(otherEmojis.length / 2));
+                availableEmojis = [...remainingTargets, ...halfOthers];
+            }
+            
             emoji = availableEmojis[Math.floor(Math.random() * availableEmojis.length)];
         } else {
             // In simple mode, use all emojis
@@ -479,19 +452,19 @@ class KidsGame {
         this.gameArea.appendChild(shape);
         this.shapes.push(shape);
         
-        // Auto-remove after 3 seconds if not clicked
+        // Auto-remove after 5 seconds if not clicked
         setTimeout(() => {
             if (shape.parentNode) {
                 this.removeShape(shape);
             }
-        }, 3000);
+        }, 5000);
     }
     
     handleShapeClick(shape) {
         const emoji = shape.dataset.emoji;
         
         // Play specific sound for this emoji
-        if (this.soundEnabled) {
+        if (this.gameManager.soundEnabled) {
             this.playSoundForEmoji(emoji);
         }
         
@@ -500,7 +473,7 @@ class KidsGame {
         
         setTimeout(() => {
             this.removeShape(shape);
-            this.showCelebration();
+            this.gameManager.showCelebration();
         }, 300);
     }
     
@@ -511,8 +484,14 @@ class KidsGame {
             // Correct and not yet found!
             this.foundEmojis.push(emoji);
             
+            // Remove from targetEmojis so clicking the same emoji again is wrong
+            const targetIndex = this.targetEmojis.indexOf(emoji);
+            if (targetIndex > -1) {
+                this.targetEmojis.splice(targetIndex, 1);
+            }
+            
             // Play specific sound for this emoji
-            if (this.soundEnabled) {
+            if (this.gameManager.soundEnabled) {
                 this.playSoundForEmoji(emoji);
             }
             
@@ -529,14 +508,17 @@ class KidsGame {
             // Check if all 8 are found
             if (this.foundEmojis.length === 8) {
                 // Game complete!
-                this.showCelebration();
+                this.gameManager.showCelebration();
                 setTimeout(() => {
-                    this.stopGame();
+                    this.stop();
+                    // Reset start button
+                    this.gameManager.startBtn.textContent = 'Começar Jogo 🎮';
+                    this.gameManager.startBtn.style.background = 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)';
                 }, 2000);
             }
         } else if (!this.targetEmojis.includes(emoji)) {
             // Wrong emoji - play error sound
-            if (this.soundEnabled) {
+            if (this.gameManager.soundEnabled) {
                 this.playErrorSound();
             }
             shape.classList.add('shake');
@@ -1052,16 +1034,20 @@ class KidsGame {
     }
     
     toggleSound() {
-        this.soundEnabled = !this.soundEnabled;
-        this.soundToggle.textContent = this.soundEnabled ? 'Som: Ligado 🔊' : 'Som: Desligado 🔇';
+        this.gameManager.soundEnabled = !this.gameManager.soundEnabled;
+        this.soundToggle.textContent = this.gameManager.soundEnabled ? 'Som: Ligado 🔊' : 'Som: Desligado 🔇';
+    }
+    
+    stop() {
+        this.isPlaying = false;
+        clearInterval(this.spawnInterval);
+        this.clearShapes();
+        this.challengePrompt.classList.remove('active');
+    }
+    
+    cleanup() {
+        this.stop();
+        this.categorySelector.style.display = 'none';
+        this.challengePrompt.classList.remove('active');
     }
 }
-
-// Initialize game when page loads
-window.addEventListener('DOMContentLoaded', () => {
-    try {
-        new KidsGame();
-    } catch (error) {
-        console.error('Error initializing game:', error);
-    }
-});
