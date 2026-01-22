@@ -12,10 +12,10 @@ class KidsGame {
         
         this.isPlaying = false;
         this.soundEnabled = true;
-        this.challengeMode = false;
+        this.challengeMode = true;
         this.shapes = [];
         this.spawnInterval = null;
-        this.targetEmoji = null;
+        this.targetEmojis = []; // Array of 4 target emojis
         this.score = 0;
         
         // Categorized emojis with their sounds
@@ -60,12 +60,20 @@ class KidsGame {
     }
     
     init() {
-        this.startBtn.addEventListener('click', () => this.toggleGame());
+        this.startBtn.addEventListener('click', () => {
+            this.toggleGame();
+        });
         this.soundToggle.addEventListener('click', () => this.toggleSound());
         this.modeToggle.addEventListener('click', () => this.toggleMode());
         
         // Create audio context for sounds (using Web Audio API)
-        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        // Audio context may be suspended, will resume on first user interaction
+        try {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (error) {
+            console.error('Web Audio API not supported:', error);
+            this.soundEnabled = false;
+        }
     }
     
     toggleMode() {
@@ -88,11 +96,20 @@ class KidsGame {
         if (this.isPlaying) {
             this.stopGame();
         } else {
+            // Set initial button style based on mode
+            if (this.challengeMode) {
+                this.modeToggle.style.background = 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
+            }
             this.startGame();
         }
     }
     
     startGame() {
+        // Resume audio context if suspended (required by browsers)
+        if (this.audioContext && this.audioContext.state === 'suspended') {
+            this.audioContext.resume();
+        }
+        
         this.isPlaying = true;
         this.startBtn.textContent = 'Parar Jogo 🛑';
         this.startBtn.style.background = 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
@@ -101,115 +118,72 @@ class KidsGame {
         this.clearShapes();
         
         if (this.challengeMode) {
-            // Challenge mode: show prompt and reset score
+            // Challenge mode: show prompt, reset score, spawn continuously
             this.score = 0;
             this.updateScore();
             this.challengePrompt.classList.add('active');
-            this.startChallenge();
+            this.pickNewTarget();
+            
+            // Spawn shapes continuously like free mode
+            this.spawnShape();
+            this.spawnInterval = setInterval(() => {
+                if (this.shapes.length < 10) {
+                    this.spawnShape();
+                }
+            }, 500);
         } else {
             // Free play mode
             this.challengePrompt.classList.remove('active');
             // Spawn shapes continuously
             this.spawnShape();
             this.spawnInterval = setInterval(() => {
-                if (this.shapes.length < 5) { // Max 5 shapes at a time
+                if (this.shapes.length < 10) { // Max 10 shapes at a time
                     this.spawnShape();
                 }
-            }, 2000);
+            }, 500);
         }
     }
     
     startChallenge() {
-        // Pick a random target emoji
-        this.targetEmoji = this.emojis[Math.floor(Math.random() * this.emojis.length)];
-        this.targetEmojiDisplay.textContent = this.targetEmoji;
-        
-        // Clear existing shapes
-        this.clearShapes();
-        
-        // Create 4 emojis: 1 correct + 3 random different ones
-        const emojisToShow = [this.targetEmoji];
-        
-        // Get 3 different random emojis
-        while (emojisToShow.length < 4) {
+        // No longer used - keeping for compatibility
+    }
+    
+    pickNewTarget() {
+        // Pick 4 different random emojis as targets
+        this.targetEmojis = [];
+        while (this.targetEmojis.length < 4) {
             const randomEmoji = this.emojis[Math.floor(Math.random() * this.emojis.length)];
-            if (!emojisToShow.includes(randomEmoji)) {
-                emojisToShow.push(randomEmoji);
+            if (!this.targetEmojis.includes(randomEmoji)) {
+                this.targetEmojis.push(randomEmoji);
             }
         }
-        
-        // Shuffle the array
-        for (let i = emojisToShow.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [emojisToShow[i], emojisToShow[j]] = [emojisToShow[j], emojisToShow[i]];
+        this.updateTargetDisplay();
+    }
+    
+    updateTargetDisplay() {
+        this.targetEmojiDisplay.textContent = this.targetEmojis.join(' ');
+    }
+    
+    replaceFoundTarget(foundEmoji) {
+        // Replace the found emoji with a new random one
+        const index = this.targetEmojis.indexOf(foundEmoji);
+        if (index > -1) {
+            let newEmoji;
+            do {
+                newEmoji = this.emojis[Math.floor(Math.random() * this.emojis.length)];
+            } while (this.targetEmojis.includes(newEmoji));
+            
+            this.targetEmojis[index] = newEmoji;
+            this.updateTargetDisplay();
         }
-        
-        // Position them in a grid
-        const positions = [
-            { x: '20%', y: '20%' },
-            { x: '60%', y: '20%' },
-            { x: '20%', y: '60%' },
-            { x: '60%', y: '60%' }
-        ];
-        
-        emojisToShow.forEach((emoji, index) => {
-            this.spawnChallengeShape(emoji, positions[index]);
-        });
     }
     
     spawnChallengeShape(emoji, position) {
-        const shape = document.createElement('div');
-        shape.className = 'shape emoji-shape';
-        shape.textContent = emoji;
-        shape.dataset.emoji = emoji;
-        
-        shape.style.left = position.x;
-        shape.style.top = position.y;
-        shape.style.transform = 'translate(-50%, -50%)';
-        
-        // Add click event for challenge mode
-        shape.addEventListener('click', () => this.handleChallengeClick(shape));
-        
-        this.gameArea.appendChild(shape);
-        this.shapes.push(shape);
+        // No longer used - keeping for compatibility
     }
     
     handleChallengeClick(shape) {
-        const emoji = shape.dataset.emoji;
-        
-        if (emoji === this.targetEmoji) {
-            // Correct!
-            this.score += 10;
-            this.updateScore();
-            
-            if (this.soundEnabled) {
-                this.playSoundForEmoji(emoji);
-            }
-            
-            // Animate and celebrate
-            shape.style.animation = 'appear 0.3s ease-out reverse';
-            
-            setTimeout(() => {
-                this.showCelebration();
-                // Start next challenge after celebration
-                setTimeout(() => {
-                    if (this.isPlaying) {
-                        this.startChallenge();
-                    }
-                }, 700);
-            }, 300);
-        } else {
-            // Wrong!
-            if (this.soundEnabled) {
-                this.playErrorSound();
-            }
-            
-            // Shake the shape
-            shape.classList.add('shake');
-            setTimeout(() => {
-                shape.classList.remove('shake');
-            }, 500);
-        }
+        // No longer used - replaced by handleChallengeShapeClick
     }
     
     updateScore() {
@@ -244,27 +218,33 @@ class KidsGame {
         shape.style.left = x + 'px';
         shape.style.top = y + 'px';
         
-        // Add click event
-        shape.addEventListener('click', () => this.handleShapeClick(shape));
+        // Add click event - different behavior for challenge mode
+        shape.addEventListener('click', () => {
+            if (this.challengeMode) {
+                this.handleChallengeShapeClick(shape);
+            } else {
+                this.handleShapeClick(shape);
+            }
+        });
         
         // Add to DOM and track it
         this.gameArea.appendChild(shape);
         this.shapes.push(shape);
         
-        // Auto-remove after 5 seconds if not clicked
+        // Auto-remove after 3 seconds if not clicked
         setTimeout(() => {
             if (shape.parentNode) {
                 this.removeShape(shape);
             }
-        }, 5000);
+        }, 3000);
     }
     
-    handconst emoji = shape.dataset.emoji;
+    handleShapeClick(shape) {
+        const emoji = shape.dataset.emoji;
         
         // Play specific sound for this emoji
         if (this.soundEnabled) {
-            this.playSoundForEmoji(emojied) {
-            this.playSound();
+            this.playSoundForEmoji(emoji);
         }
         
         // Animate and remove
@@ -274,6 +254,45 @@ class KidsGame {
             this.removeShape(shape);
             this.showCelebration();
         }, 300);
+    }
+    
+    handleChallengeShapeClick(shape) {
+        const emoji = shape.dataset.emoji;
+        
+        if (this.targetEmojis.includes(emoji)) {
+            // Correct!
+            this.score += 10;
+            this.updateScore();
+            
+            if (this.soundEnabled) {
+                this.playSoundForEmoji(emoji);
+            }
+            
+            // Animate and remove
+            shape.style.animation = 'appear 0.3s ease-out reverse';
+            
+            setTimeout(() => {
+                this.removeShape(shape);
+                this.showCelebration();
+                // Replace this target with a new one
+                setTimeout(() => {
+                    if (this.isPlaying) {
+                        this.replaceFoundTarget(emoji);
+                    }
+                }, 700);
+            }, 300);
+        } else {
+            // Wrong! Play error sound and shake
+            if (this.soundEnabled) {
+                this.playErrorSound();
+            }
+            
+            // Shake the shape but don't remove it
+            shape.classList.add('shake');
+            setTimeout(() => {
+                shape.classList.remove('shake');
+            }, 500);
+        }
     }
     
     removeShape(shape) {
@@ -749,21 +768,38 @@ class KidsGame {
     }
     
     playErrorSound() {
-        // Create a descending "buzz" sound for wrong answer
-        const osc = this.audioContext.createOscillator();
-        const gain = this.audioContext.createGain();
-        osc.connect(gain);
-        gain.connect(this.audioContext.destination);
-        
+        // Create a distinctive "wrong" sound - two quick low buzzes
         const now = this.audioContext.currentTime;
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(300, now);
-        osc.frequency.exponentialRampToValueAtTime(100, now + 0.3);
-        gain.gain.setValueAtTime(0.3, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
         
-        osc.start(now);
-        osc.stop(now + 0.35);
+        // First buzz
+        const osc1 = this.audioContext.createOscillator();
+        const gain1 = this.audioContext.createGain();
+        osc1.connect(gain1);
+        gain1.connect(this.audioContext.destination);
+        
+        osc1.type = 'square';
+        osc1.frequency.setValueAtTime(200, now);
+        osc1.frequency.exponentialRampToValueAtTime(150, now + 0.15);
+        gain1.gain.setValueAtTime(0.4, now);
+        gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        
+        osc1.start(now);
+        osc1.stop(now + 0.15);
+        
+        // Second buzz (lower)
+        const osc2 = this.audioContext.createOscillator();
+        const gain2 = this.audioContext.createGain();
+        osc2.connect(gain2);
+        gain2.connect(this.audioContext.destination);
+        
+        osc2.type = 'square';
+        osc2.frequency.setValueAtTime(180, now + 0.15);
+        osc2.frequency.exponentialRampToValueAtTime(130, now + 0.3);
+        gain2.gain.setValueAtTime(0.4, now + 0.15);
+        gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+        
+        osc2.start(now + 0.15);
+        osc2.stop(now + 0.3);
     }
     
     toggleSound() {
@@ -774,5 +810,9 @@ class KidsGame {
 
 // Initialize game when page loads
 window.addEventListener('DOMContentLoaded', () => {
-    new KidsGame();
+    try {
+        new KidsGame();
+    } catch (error) {
+        console.error('Error initializing game:', error);
+    }
 });
