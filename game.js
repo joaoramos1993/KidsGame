@@ -9,10 +9,14 @@ class KidsGame {
         this.challengePrompt = document.getElementById('challengePrompt');
         this.targetEmojiDisplay = document.getElementById('targetEmoji');
         this.scoreDisplay = document.getElementById('score');
+        this.categorySelector = document.getElementById('categorySelector');
+        this.categoryAnimalsBtn = document.getElementById('categoryAnimals');
+        this.categoryOthersBtn = document.getElementById('categoryOthers');
         
         this.isPlaying = false;
         this.soundEnabled = true;
         this.challengeMode = true;
+        this.selectedCategory = 'animals'; // 'animals' or 'others'
         this.shapes = [];
         this.spawnInterval = null;
         this.targetEmojis = []; // Array of 4 target emojis
@@ -65,6 +69,8 @@ class KidsGame {
         });
         this.soundToggle.addEventListener('click', () => this.toggleSound());
         this.modeToggle.addEventListener('click', () => this.toggleMode());
+        this.categoryAnimalsBtn.addEventListener('click', () => this.selectCategory('animals'));
+        this.categoryOthersBtn.addEventListener('click', () => this.selectCategory('others'));
         
         // Create audio context for sounds (using Web Audio API)
         // Audio context may be suspended, will resume on first user interaction
@@ -78,17 +84,40 @@ class KidsGame {
     
     toggleMode() {
         this.challengeMode = !this.challengeMode;
-        this.modeToggle.textContent = this.challengeMode ? 'Modo: Desafio 🎯' : 'Modo: Livre 🎲';
+        this.modeToggle.textContent = this.challengeMode ? 'Modo: Desafio 🎯' : 'Modo: Simples 🎈';
         
         if (this.challengeMode) {
             this.modeToggle.style.background = 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
+            this.categorySelector.style.display = 'flex'; // Show category selector
         } else {
             this.modeToggle.style.background = 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)';
+            this.categorySelector.style.display = 'none'; // Hide category selector
         }
         
         // Reset game if playing
         if (this.isPlaying) {
             this.stopGame();
+        }
+    }
+    
+    selectCategory(category) {
+        this.selectedCategory = category;
+        
+        // Update button styles
+        if (category === 'animals') {
+            this.categoryAnimalsBtn.classList.add('active');
+            this.categoryOthersBtn.classList.remove('active');
+        } else {
+            this.categoryAnimalsBtn.classList.remove('active');
+            this.categoryOthersBtn.classList.add('active');
+        }
+        
+        // If game is playing in challenge mode, restart with new category
+        if (this.isPlaying && this.challengeMode) {
+            this.score = 0;
+            this.updateScore();
+            this.clearShapes();
+            this.pickNewTarget();
         }
     }
     
@@ -118,29 +147,28 @@ class KidsGame {
         this.clearShapes();
         
         if (this.challengeMode) {
-            // Challenge mode: show prompt, reset score, spawn continuously
+            // Challenge mode: show prompt with 4 targets, reset score, spawn continuously
             this.score = 0;
             this.updateScore();
             this.challengePrompt.classList.add('active');
             this.pickNewTarget();
             
-            // Spawn shapes continuously like free mode
-            this.spawnShape();
-            this.spawnInterval = setInterval(() => {
-                if (this.shapes.length < 10) {
-                    this.spawnShape();
-                }
-            }, 500);
-        } else {
-            // Free play mode
-            this.challengePrompt.classList.remove('active');
             // Spawn shapes continuously
             this.spawnShape();
             this.spawnInterval = setInterval(() => {
-                if (this.shapes.length < 10) { // Max 10 shapes at a time
+                if (this.shapes.length < 8) {
                     this.spawnShape();
                 }
-            }, 500);
+            }, 1000);
+        } else {
+            // Simple mode: show prompt with 1 target, reset score
+            this.score = 0;
+            this.updateScore();
+            this.challengePrompt.classList.add('active');
+            this.pickSimpleTarget();
+            
+            // Spawn 4 fixed options for simple mode
+            this.spawnSimpleOptions();
         }
     }
     
@@ -149,14 +177,47 @@ class KidsGame {
     }
     
     pickNewTarget() {
-        // Pick 4 different random emojis as targets
+        // Pick 4 different random emojis as targets (Challenge mode)
+        // Use only selected category
+        let availableEmojis;
+        if (this.selectedCategory === 'animals') {
+            availableEmojis = this.emojiCategories.animals.emojis;
+        } else {
+            // Combine magic, hearts, and fruits
+            availableEmojis = [
+                ...this.emojiCategories.magic.emojis,
+                ...this.emojiCategories.hearts.emojis,
+                ...this.emojiCategories.fruits.emojis
+            ];
+        }
+        
         this.targetEmojis = [];
         while (this.targetEmojis.length < 4) {
-            const randomEmoji = this.emojis[Math.floor(Math.random() * this.emojis.length)];
+            const randomEmoji = availableEmojis[Math.floor(Math.random() * availableEmojis.length)];
             if (!this.targetEmojis.includes(randomEmoji)) {
                 this.targetEmojis.push(randomEmoji);
             }
         }
+        this.updateTargetDisplay();
+    }
+    
+    pickSimpleTarget() {
+        // Pick 1 correct target and 3 wrong options (Simple mode)
+        const correctEmoji = this.emojis[Math.floor(Math.random() * this.emojis.length)];
+        this.targetEmojis = [correctEmoji]; // Only 1 correct answer
+        
+        // Pick 3 different wrong options
+        this.simpleOptions = [correctEmoji];
+        while (this.simpleOptions.length < 4) {
+            const randomEmoji = this.emojis[Math.floor(Math.random() * this.emojis.length)];
+            if (!this.simpleOptions.includes(randomEmoji)) {
+                this.simpleOptions.push(randomEmoji);
+            }
+        }
+        
+        // Shuffle the options so correct answer isn't always first
+        this.simpleOptions.sort(() => Math.random() - 0.5);
+        
         this.updateTargetDisplay();
     }
     
@@ -165,7 +226,7 @@ class KidsGame {
     }
     
     replaceFoundTarget(foundEmoji) {
-        // Replace the found emoji with a new random one
+        // Replace the found emoji with a new random one (Challenge mode only)
         const index = this.targetEmojis.indexOf(foundEmoji);
         if (index > -1) {
             let newEmoji;
@@ -175,6 +236,83 @@ class KidsGame {
             
             this.targetEmojis[index] = newEmoji;
             this.updateTargetDisplay();
+        }
+    }
+    
+    spawnSimpleOptions() {
+        // Clear any existing shapes first
+        this.clearShapes();
+        
+        // Calculate positions for 4 options in a grid
+        const gameWidth = this.gameArea.clientWidth;
+        const gameHeight = this.gameArea.clientHeight;
+        const shapeSize = 120;
+        const spacing = 40;
+        
+        // Calculate grid positions (2x2 grid centered)
+        const totalWidth = shapeSize * 2 + spacing;
+        const totalHeight = shapeSize * 2 + spacing;
+        const startX = (gameWidth - totalWidth) / 2;
+        const startY = (gameHeight - totalHeight) / 2;
+        
+        const positions = [
+            { x: startX, y: startY }, // top-left
+            { x: startX + shapeSize + spacing, y: startY }, // top-right
+            { x: startX, y: startY + shapeSize + spacing }, // bottom-left
+            { x: startX + shapeSize + spacing, y: startY + shapeSize + spacing } // bottom-right
+        ];
+        
+        // Create 4 shapes with the selected emojis
+        this.simpleOptions.forEach((emoji, index) => {
+            const shape = document.createElement('div');
+            shape.className = 'shape emoji-shape';
+            shape.textContent = emoji;
+            shape.dataset.emoji = emoji;
+            
+            shape.style.left = positions[index].x + 'px';
+            shape.style.top = positions[index].y + 'px';
+            shape.style.fontSize = '80px'; // Larger for easier clicking
+            
+            // Add click event
+            shape.addEventListener('click', () => {
+                this.handleSimpleShapeClick(shape);
+            });
+            
+            this.gameArea.appendChild(shape);
+            this.shapes.push(shape);
+        });
+    }
+    
+    handleSimpleShapeClick(shape) {
+        const emoji = shape.dataset.emoji;
+        
+        if (this.targetEmojis.includes(emoji)) {
+            // Correct!
+            this.score += 10;
+            this.updateScore();
+            
+            // Play specific sound for this emoji
+            if (this.soundEnabled) {
+                this.playSoundForEmoji(emoji);
+            }
+            
+            // Show celebration
+            this.showCelebration();
+            
+            // Pick new target and respawn options
+            setTimeout(() => {
+                this.pickSimpleTarget();
+                this.spawnSimpleOptions();
+            }, 500);
+        } else {
+            // Wrong! Play error sound and shake
+            if (this.soundEnabled) {
+                this.playErrorSound();
+            }
+            
+            // Add shake animation
+            shape.classList.add('shake');
+            setTimeout(() => shape.classList.remove('shake'), 500);
         }
     }
     
@@ -204,8 +342,26 @@ class KidsGame {
         const shape = document.createElement('div');
         shape.className = 'shape emoji-shape';
         
-        // Random emoji
-        const emoji = this.emojis[Math.floor(Math.random() * this.emojis.length)];
+        // Select emoji based on mode and category
+        let emoji;
+        if (this.challengeMode) {
+            // In challenge mode, use selected category
+            let availableEmojis;
+            if (this.selectedCategory === 'animals') {
+                availableEmojis = this.emojiCategories.animals.emojis;
+            } else {
+                availableEmojis = [
+                    ...this.emojiCategories.magic.emojis,
+                    ...this.emojiCategories.hearts.emojis,
+                    ...this.emojiCategories.fruits.emojis
+                ];
+            }
+            emoji = availableEmojis[Math.floor(Math.random() * availableEmojis.length)];
+        } else {
+            // In simple mode, use all emojis
+            emoji = this.emojis[Math.floor(Math.random() * this.emojis.length)];
+        }
+        
         shape.textContent = emoji;
         shape.dataset.emoji = emoji; // Store emoji for sound identification
         
