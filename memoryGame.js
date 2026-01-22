@@ -139,12 +139,12 @@ class MemoryGame {
             return;
         }
         
-        // Ignore if already flipping 2 cards
+        // Ignore if already processing 2 cards
         if (this.flippedCards.length >= 2) {
             return;
         }
         
-        // Flip the card
+        // Flip the card immediately
         card.classList.add('flipped');
         this.flippedCards.push(card);
         
@@ -153,9 +153,9 @@ class MemoryGame {
             this.playFlipSound();
         }
         
-        // Check for match when 2 cards are flipped
+        // Only check for match when 2 cards are flipped
         if (this.flippedCards.length === 2) {
-            setTimeout(() => this.checkMatch(), 600);
+            setTimeout(() => this.checkMatch(), 500);
         }
     }
     
