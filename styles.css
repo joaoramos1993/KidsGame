@@ -28,16 +28,15 @@ body {
 
 .header {
     background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    padding: 30px;
+    padding: 10px;
     text-align: center;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
 .header h1 {
     color: white;
-    font-size: 3em;
+    font-size: 1.5em;
     text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.2);
-    animation: bounce 2s infinite;
 }
 
 @keyframes bounce {
@@ -54,7 +53,7 @@ body {
 
 .challenge-prompt {
     background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-    padding: 20px;
+    padding: 12px;
     text-align: center;
     display: none;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
@@ -65,10 +64,9 @@ body {
 }
 
 .prompt-text {
-    font-size: 2.5em;
+    font-size: 1.8em;
     font-weight: bold;
     color: #333;
-    margin-bottom: 10px;
 }
 
 #targetEmoji {
@@ -88,14 +86,14 @@ body {
     display: none;
     justify-content: center;
     gap: 15px;
-    padding: 15px;
+    padding: 10px;
     background: rgba(255, 255, 255, 0.5);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .category-btn {
-    padding: 12px 30px;
-    font-size: 1.3em;
+    padding: 10px 25px;
+    font-size: 1.1em;
     font-weight: bold;
     border: 3px solid #ddd;
     border-radius: 15px;
