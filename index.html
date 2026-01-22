@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo Divertido 🎨</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>🌈 Toca e Brinca! 🎉</h1>
+        </div>
+        
+        <div class="challenge-prompt" id="challengePrompt">
+            <div class="prompt-text">Encontra o: <span id="targetEmoji"></span></div>
+            <div class="score-display">Pontos: <span id="score">0</span></div>
+        </div>
+        
+        <div class="game-area" id="gameArea">
+            <!-- Animals and shapes will appear here -->
+        </div>
+        
+        <div class="controls">
+            <button class="control-btn" id="startBtn">Começar Jogo 🎮</button>
+            <button class="control-btn" id="modeToggle">Modo: Livre 🎲</button>
+            <button class="control-btn" id="soundToggle">Som: Ligado 🔊</button>
+        </div>
+        
+        <div class="celebration" id="celebration">
+            <div class="celebration-text">🎉 Muito Bem! 🎉</div>
+        </div>
+    </div>
+    
+    <script src="game.js"></script>
+</body>
+</html>
